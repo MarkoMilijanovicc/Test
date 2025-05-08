@@ -1,14 +1,26 @@
-FROM openjdk:21-slim-bullseye
+FROM debian:stable-slim
 
-RUN apt-get update && apt-get install -y curl tar libicu-dev jq ca-certificates curl ant
+RUN apt-get update && apt-get install -y curl tar libicu-dev gnupg software-properties-common wget jq
 
-RUN install -m 0755 -d /etc/apt/keyrings
-RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-RUN chmod a+r /etc/apt/keyrings/docker.asc
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && apt-get update
+# Install Terraform
+WORKDIR /terraform
 
-RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin fuse-overlayfs
+RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
+    gpg --dearmor | \
+    tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
 
+RUN echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+    https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+    tee /etc/apt/sources.list.d/hashicorp.list
+
+RUN apt-get update && \
+    apt-get -y install terraform
+
+# Install Azure CLI
+WORKDIR /azure-cli
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+# Install GitHub runner
 WORKDIR /actions-runner
 
 RUN curl -o actions-runner-linux-x64-2.322.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.322.0/actions-runner-linux-x64-2.322.0.tar.gz && \
@@ -16,10 +28,11 @@ RUN curl -o actions-runner-linux-x64-2.322.0.tar.gz -L https://github.com/action
     tar xzf ./actions-runner-linux-x64-2.322.0.tar.gz && \
     rm -rf ./actions-runner-linux-x64-2.322.0.tar.gz
 
-ENV RUNNER_ALLOW_RUNASROOT="1"
+RUN adduser --disabled-password --gecos "" runner
+RUN chown -R runner:runner /actions-runner
+USER runner
 
 # Register the runner
-RUN ./config.sh -y --url https://github.com/AvenuProducts --token BQE3KQEJ53CQSDGDND4HIADIDR42C --name java-runner --labels java-runner --replace
-    
-# Copy entrypoint script
+RUN ./config.sh --url https://github.com/AvenuProducts/jury-azure-onboarding --token BQE3KQAWSJKKRMPH72IDD5DIDR7EC --name terraform-runner --labels terraform-runner --replace 
+
 CMD ["./run.sh"]
