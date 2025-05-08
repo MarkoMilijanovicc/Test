@@ -33,6 +33,6 @@ RUN chown -R runner:runner /actions-runner
 USER runner
 
 # Register the runner
-RUN ./config.sh --url https://github.com/AvenuProducts/jury-azure-onboarding --token BQE3KQAWSJKKRMPH72IDD5DIDR7EC --name terraform-runner --labels terraform-runner --replace 
+RUN ./config.sh --url https://github.com/AvenuProducts/jury-azure-onboarding --token BQE3KQDZSD7ZY673FWBM5NDIDSFMK --name terraform-runner --labels terraform-runner --replace 
 
 CMD ["./run.sh"]
