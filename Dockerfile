@@ -28,6 +28,9 @@ RUN chmod +x /actions-runner/install_actions.sh \
   && rm /actions-runner/install_actions.sh \
   && chown runner /_work /actions-runner /opt/hostedtoolcache
 
+RUN echo "GITHUB_ACTIONS_RUNNER_UPDATE_ENABLED=false" >> /etc/environment
+ENV GITHUB_ACTIONS_RUNNER_UPDATE_ENABLED=false
+
 COPY scr/token.sh scr/entrypoint.sh scr/app_token.sh /
 RUN chmod +x /token.sh /entrypoint.sh /app_token.sh
 
