@@ -25,7 +25,7 @@ function create_sysbox_gha_runner {
         -e RUNNER_NAME="$name" \
         -e RUNNER_GROUP="" \
         -e LABELS="" \
-        --name "$name" rodnymolina588/gha-sysbox-runner:latest
+        --name "$name" runner-image:latest
 }
 
 function main() {
