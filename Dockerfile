@@ -1,38 +1,36 @@
-FROM debian:stable-slim
+#
+# Github-Actions runner image.
+#
 
-RUN apt-get update && apt-get install -y curl tar libicu-dev gnupg software-properties-common wget jq
+FROM rodnymolina588/ubuntu-jammy-docker
+LABEL maintainer="rodny.molina@docker.com"
 
-# Install Terraform
-WORKDIR /terraform
+ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
+RUN mkdir -p /opt/hostedtoolcache
 
-RUN wget -O- https://apt.releases.hashicorp.com/gpg | \
-    gpg --dearmor | \
-    tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+ARG GH_RUNNER_VERSION="2.322.0"
 
-RUN echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-    https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-    tee /etc/apt/sources.list.d/hashicorp.list
+ARG TARGETPLATFORM
 
-RUN apt-get update && \
-    apt-get -y install terraform
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install Azure CLI
-WORKDIR /azure-cli
-RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init jq \
+  && groupadd -g 121 runner \
+  && useradd -mr -d /home/runner -u 1001 -g 121 runner \
+  && usermod -aG sudo runner \
+  && usermod -aG docker runner \
+  && echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-# Install GitHub runner
 WORKDIR /actions-runner
+COPY scr/install_actions.sh /actions-runner
 
-RUN curl -o actions-runner-linux-x64-2.322.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.322.0/actions-runner-linux-x64-2.322.0.tar.gz && \
-    echo "b13b784808359f31bc79b08a191f5f83757852957dd8fe3dbfcc38202ccf5768  actions-runner-linux-x64-2.322.0.tar.gz" | openssl dgst -sha256 -c && \
-    tar xzf ./actions-runner-linux-x64-2.322.0.tar.gz && \
-    rm -rf ./actions-runner-linux-x64-2.322.0.tar.gz
+RUN chmod +x /actions-runner/install_actions.sh \
+  && /actions-runner/install_actions.sh ${GH_RUNNER_VERSION} ${TARGETPLATFORM} \
+  && rm /actions-runner/install_actions.sh \
+  && chown runner /_work /actions-runner /opt/hostedtoolcache
 
-RUN adduser --disabled-password --gecos "" runner
-RUN chown -R runner:runner /actions-runner
-USER runner
+COPY scr/token.sh scr/entrypoint.sh scr/app_token.sh /
+RUN chmod +x /token.sh /entrypoint.sh /app_token.sh
 
-# Register the runner
-RUN ./config.sh --url https://github.com/AvenuProducts/jury-azure-onboarding --token BQE3KQAWSJKKRMPH72IDD5DIDR7EC --name terraform-runner --labels terraform-runner --replace 
-
-CMD ["./run.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["./bin/Runner.Listener", "run", "--startuptype", "service"]

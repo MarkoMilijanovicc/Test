@@ -24,7 +24,7 @@ function create_sysbox_gha_runner {
         -e RUNNER_TOKEN="$token" \
         -e RUNNER_NAME="$name" \
         -e RUNNER_GROUP="" \
-        -e LABELS="terraform-runner" \
+        -e LABELS="" \
         --name "$name" rodnymolina588/gha-sysbox-runner:latest
 }
 
