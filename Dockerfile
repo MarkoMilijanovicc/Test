@@ -1,9 +1,4 @@
-#
-# Github-Actions runner image.
-#
-
-FROM rodnymolina588/ubuntu-jammy-docker
-LABEL maintainer="rodny.molina@docker.com"
+FROM openjdk:21-slim-bullseye
 
 ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
 RUN mkdir -p /opt/hostedtoolcache
@@ -14,12 +9,19 @@ ARG TARGETPLATFORM
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update && apt-get install -y --no-install-recommends dumb-init jq \
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init jq  curl tar libicu-dev jq ca-certificates curl ant\
   && groupadd -g 121 runner \
   && useradd -mr -d /home/runner -u 1001 -g 121 runner \
   && usermod -aG sudo runner \
   && usermod -aG docker runner \
   && echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && apt-get update
+  
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin fuse-overlayfs
 
 WORKDIR /actions-runner
 COPY scr/install_actions.sh /actions-runner
