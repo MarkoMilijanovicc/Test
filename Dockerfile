@@ -1,38 +1,25 @@
-#
-# Github-Actions runner image.
-#
+FROM openjdk:21-slim-bullseye
 
-FROM rodnymolina588/ubuntu-jammy-docker
+RUN apt-get update && apt-get install -y curl tar libicu-dev jq ca-certificates curl ant
 
-ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
-RUN mkdir -p /opt/hostedtoolcache
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && apt-get update
 
-ARG GH_RUNNER_VERSION="2.322.0"
-
-ARG TARGETPLATFORM
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN apt-get update && apt-get install -y --no-install-recommends dumb-init jq \
-  && groupadd -g 121 runner \
-  && useradd -mr -d /home/runner -u 1001 -g 121 runner \
-  && usermod -aG sudo runner \
-  && usermod -aG docker runner \
-  && echo '%sudo ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin fuse-overlayfs
 
 WORKDIR /actions-runner
-COPY scr/install_actions.sh /actions-runner
 
-RUN chmod +x /actions-runner/install_actions.sh \
-  && /actions-runner/install_actions.sh ${GH_RUNNER_VERSION} ${TARGETPLATFORM} \
-  && rm /actions-runner/install_actions.sh \
-  && chown runner /_work /actions-runner /opt/hostedtoolcache
+RUN curl -o actions-runner-linux-x64-2.322.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.322.0/actions-runner-linux-x64-2.322.0.tar.gz && \
+    echo "b13b784808359f31bc79b08a191f5f83757852957dd8fe3dbfcc38202ccf5768  actions-runner-linux-x64-2.322.0.tar.gz" | openssl dgst -sha256 -c && \
+    tar xzf ./actions-runner-linux-x64-2.322.0.tar.gz && \
+    rm -rf ./actions-runner-linux-x64-2.322.0.tar.gz
 
-RUN echo "GITHUB_ACTIONS_RUNNER_UPDATE_ENABLED=false" >> /etc/environment
-ENV GITHUB_ACTIONS_RUNNER_UPDATE_ENABLED=false
+ENV RUNNER_ALLOW_RUNASROOT="1"
 
-COPY scr/token.sh scr/entrypoint.sh scr/app_token.sh /
-RUN chmod +x /token.sh /entrypoint.sh /app_token.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["./bin/Runner.Listener", "run", "--startuptype", "service"]
+# Register the runner
+RUN ./config.sh -y --url https://github.com/AvenuProducts --token BQE3KQEJ53CQSDGDND4HIADIDR42C --name java-runner --labels java-runner --replace
+    
+# Copy entrypoint script
+CMD ["./run.sh"]
