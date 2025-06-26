@@ -7,17 +7,17 @@ on:
         description: 'Base branch to checkout'
         required: true
         type: string
-        default: 'cloud-optimization'
+        default: 'test'
       client_name:
         description: 'Name of the client (e.g., starter-client)'
         required: true
         type: string
-        default: 'starter-client'
+        default: 'test'
       environment:
         description: 'Environment to deploy (e.g., dev, sandbox, prod)'
         required: true
         type: string
-        default: 'dev'
+        default: 'test'
       tag:
         description: 'Tag'
         required: true
@@ -27,7 +27,7 @@ on:
         description: 'ACR Name'
         required: true
         type: string
-        default: 'avenuacrdev'
+        default: 'test'
 
 jobs:
   call-jury-build:
