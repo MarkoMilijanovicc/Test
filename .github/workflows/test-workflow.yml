@@ -31,6 +31,7 @@ on:
 
 jobs:
   call-jury-build:
+    environment: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
