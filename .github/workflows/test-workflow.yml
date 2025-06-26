@@ -1,0 +1,43 @@
+name: Test Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch to checkout'
+        required: true
+        type: string
+        default: 'cloud-optimization'
+      client_name:
+        description: 'Name of the client (e.g., starter-client)'
+        required: true
+        type: string
+        default: 'starter-client'
+      environment:
+        description: 'Environment to deploy (e.g., dev, sandbox, prod)'
+        required: true
+        type: string
+        default: 'dev'
+      tag:
+        description: 'Tag'
+        required: true
+        type: string
+        default: 'test'
+      acr_name:
+        description: 'ACR Name'
+        required: true
+        type: string
+        default: 'avenuacrdev'
+
+jobs:
+  call-jury-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.base_branch }}
+
+      - name: Build and push Docker image
+        run: |
+          echo "TEST"
